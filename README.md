@@ -35,6 +35,20 @@ The basic requirements for running ATHENA is Python with the following packages:
 
 Details on system requirements and the full dependency list is contained in the following file: environment.yml
 
+## Installation
+
+**Clone this repository:**
+```
+git clone https://github.com/shimizu-team/ATHENA.git
+cd metdeecine
+```
+**Construct environment:**
+You can set up the required environment using the environment.yml file:
+```
+conda env create -f environment.yml
+conda activate ATHENA
+```
+
 ## Usage
 
 ### Input Files
