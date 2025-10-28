@@ -21,6 +21,8 @@ This repository provides two distinct, state-of-the-art models:
     * Provides fine-grained prediction, mapping the precise boundaries of intrinsically disordered regions (IDRs) within a protein sequence.
     * Employs a hybrid deep learning architecture, combining a **Bi-directional LSTM (Bi-LSTM)** to capture local sequence context and a **Transformer** encoder to model long-range dependencies.
 
+![ATHENA Architecture](ATHENA.png)
+
 ## Prerequisites
 The basic requirements for running ATHENA is Python with the following packages:
 
