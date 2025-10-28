@@ -1,4 +1,4 @@
-name: esm-c_lora
+name: ATHENA
 channels:
   - pytorch
   - nvidia
