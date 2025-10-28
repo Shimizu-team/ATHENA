@@ -31,6 +31,7 @@ The basic requirements for running ATHENA is Python with the following packages:
 * pandas==2.2.3
 * numpy==2.0.1
 * esm==3.2.0
+* transformers==4.48.1
 
 Details on system requirements and the full dependency list is contained in the following file: environment.yml
 
