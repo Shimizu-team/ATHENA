@@ -42,7 +42,7 @@ Details on system requirements and the full dependency list is contained in the 
 **Clone this repository:**
 ```
 git clone https://github.com/shimizu-team/ATHENA.git
-cd metdeecine
+cd ATHENA
 ```
 **Construct environment:**
 You can set up the required environment using the environment.yml file:
