@@ -2,6 +2,8 @@
 
 This repository provides the official implementation for the core structural disorder prediction components of the ATHENA (AI-driven Tardigrade resistome High-throughput Exploration and Novel Annotation) framework. ATHENA is an integrated AI framework engineered to predict a protein's 'stress-resistance potential' directly from its primary sequence.
 
+![ATHENA Architecture](ATHENA.png)
+
 While the full ATHENA framework is designed to predict multiple properties, its primary function and core component is the accurate prediction of structural disorder—a key feature of many stress-response proteins (e.g., tardigrade effectors). This repository provides the two-tiered classification system for this task:
 
 1. A protein-level classifier for predicting the likelihood of being globally disordered.
@@ -25,8 +27,6 @@ This repository provides two distinct, state-of-the-art models:
 * **Residue-Level IDR Classifier:**
     * Provides fine-grained prediction, mapping the precise boundaries of intrinsically disordered regions (IDRs) within a protein sequence.
     * Employs a hybrid deep learning architecture, combining a **Bi-directional LSTM (Bi-LSTM)** to capture local sequence context and a **Transformer** encoder to model long-range dependencies.
-
-![ATHENA Architecture](ATHENA.png)
 
 ## Prerequisites
 The basic requirements for running ATHENA is Python with the following packages:
