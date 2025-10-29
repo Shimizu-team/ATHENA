@@ -103,7 +103,7 @@ Embedding Generation: It first generates residue-level embeddings for each prote
 
 IDR Prediction: It then feeds these embeddings into the IDR classification model to predict a disorder label (0 or 1) and probability for each residue.
 
-How to Run: Use the provided IDR_classification.sh script:
+Use the provided IDR_classification.sh script:
 
 ```
 python ATHENA_IDR_classification.py \
@@ -123,11 +123,11 @@ python ATHENA_IDR_classification.py \
 
 * **--save_embeddings_dir** (Optional): If you add this argument (e.g., --save_embeddings_dir "my_embeddings"), the script will save the intermediate residue embeddings to disk, which can be useful for future runs.
 
-Output Explanation
+### Output Explanation
 
 The two workflows produce different types of output files.
 
-1. Protein-Level Classifier Output
+**1. Protein-Level Classifier Output**
 
 The output depends on the --output_type argument set in inference.sh:
 
@@ -141,7 +141,7 @@ Structured_score_before_softmax_{title}.pt: The raw logit score for the "structu
 
 IDP_score_{title}.pt: A dictionary mapping each seq_id to its softmax probability (a float between 0.0 and 1.0) of being in the "IDP" class.
 
-2. Residue-Level Classifier Output
+**2. Residue-Level Classifier Output**
 
 This workflow produces a single, comprehensive CSV file specified by the --output_csv argument (e.g., IDR_predictions.csv).
 
