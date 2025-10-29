@@ -1,12 +1,17 @@
 # ATHENA
 
-This repository provides the official implementation of the machine learning models from the **ATHENA (AI-driven Tardigrade resistome High-throughput Exploration and Novel Annotation)** framework. It includes a protein-level classifier for predicting stress-resistance potential (IDP likelihood) and a state-of-the-art residue-level classifier for mapping intrinsically disordered regions (IDRs).
+This repository provides the official implementation for the core structural disorder prediction components of the ATHENA (AI-driven Tardigrade resistome High-throughput Exploration and Novel Annotation) framework. ATHENA is an integrated AI framework engineered to predict a protein's 'stress-resistance potential' directly from its primary sequence.
+
+While the full ATHENA framework is designed to predict multiple properties, its primary function and core component is the accurate prediction of structural disorder—a key feature of many stress-response proteins (e.g., tardigrade effectors). This repository provides the two-tiered classification system for this task:
+
+1. A protein-level classifier for predicting the likelihood of being globally disordered.
+2. A state-of-the-art residue-level classifier for mapping intrinsically disordered regions (IDRs).
 
 ## Overview
 
 The discovery of novel 'guardian' proteins, such as those that give tardigrades their remarkable resilience to extreme environments, is a significant challenge. Many of these key effectors are intrinsically disordered proteins (IDPs). Unlike structured proteins, IDPs lack a stable 3D fold, and their sequences often evolve rapidly. This makes them difficult to identify using traditional homology-based computational methods, which rely on sequence or structure conservation.
 
-To overcome this challenge, we developed ATHENA, consisting of two machine learning models with predict disorder at the protein and residue level. These models are engineered to capture the subtle sequence features indicative of functional disorder, particularly for stress-resistance proteins. The models are built upon protein language model (PLM) embeddings (ESM-C)and are fine-tuned to specialize in this complex prediction task.
+To overcome this challenge, we developed the ATHENA framework. The models provided here are focused on identifying structural disorder by capturing the subtle sequence features indicative of this property. The models are built upon protein language model (PLM) embeddings (ESM-C) and are fine-tuned using Low-Rank Adaptation (LoRA) to specialize in this complex prediction task.
 
 ## Key Features
 
@@ -98,7 +103,7 @@ Embedding Generation: It first generates residue-level embeddings for each prote
 
 IDR Prediction: It then feeds these embeddings into the IDR classification model to predict a disorder label (0 or 1) and probability for each residue.
 
-How to Run: Use the provided IDR_classification.sh script:
+Use the provided IDR_classification.sh script:
 
 ```
 python ATHENA_IDR_classification.py \
@@ -118,11 +123,11 @@ python ATHENA_IDR_classification.py \
 
 * **--save_embeddings_dir** (Optional): If you add this argument (e.g., --save_embeddings_dir "my_embeddings"), the script will save the intermediate residue embeddings to disk, which can be useful for future runs.
 
-Output Explanation
+### Output Explanation
 
 The two workflows produce different types of output files.
 
-1. Protein-Level Classifier Output
+**1. Protein-Level Classifier Output**
 
 The output depends on the --output_type argument set in inference.sh:
 
@@ -136,7 +141,7 @@ Structured_score_before_softmax_{title}.pt: The raw logit score for the "structu
 
 IDP_score_{title}.pt: A dictionary mapping each seq_id to its softmax probability (a float between 0.0 and 1.0) of being in the "IDP" class.
 
-2. Residue-Level Classifier Output
+**2. Residue-Level Classifier Output**
 
 This workflow produces a single, comprehensive CSV file specified by the --output_csv argument (e.g., IDR_predictions.csv).
 
