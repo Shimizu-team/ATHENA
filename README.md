@@ -55,6 +55,7 @@ You can set up the required environment using the environment.yml file:
 conda env create -f environment.yml
 conda activate ATHENA
 ```
+Typical install time on a standard desktop computer: 3-5 minutes
 
 ## Usage
 
@@ -75,6 +76,7 @@ TLSYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKED
 ```
 ### How to Run:
 **1. Protein-Level IDP Classification**
+Expected run time for demo on a standard desktop computer: Anywhere from 1-10 minutes, depending on the number of sequences to be scored.
 ```
 python ATHENA_IDP_classification.py --title "IDP_Inference" \
                     --adapter_paths "IDP_LoRA=model_params" \
@@ -96,6 +98,7 @@ This script executes ATHENA_IDP_classification.py with specific arguments:
 * **--batch_size** 64: Sets the batch size for inference. Adjust based on your GPU memory.
 
 **2. Residue-Level Classification (Mapping IDRs)**
+Expected run time for demo on a standard desktop computer: Anywhere from 1-10 minutes, depending on the number of sequences to be classified.
 
 This workflow is an end-to-end pipeline that performs two steps:
 
