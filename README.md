@@ -61,6 +61,9 @@ Typical install time on a standard desktop computer: 3-5 minutes
 
 ## Usage
 
+The simplest way to use Ubicon is through the provided Jupyter notebook tutorial (tutorial.ipynb). Alternatively, you can run it directly on Google Colab:[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kota-2000/ATHENA_New/blob/main/ATHENA_IDR_Classifier/notebooks/Colab_Demo.ipynb)
+Expected runtime: ~3-5 minutes including installation
+
 ### Input Files
 
 The primary input for both classifiers is a standard multi-FASTA file (e.g., `example_sequences.fasta`). The parsers in the scripts are designed to extract sequence IDs from UniProt-style headers (like `>sp|P12345|...`) or simple headers (like `>my_protein_id_1`).
