@@ -61,7 +61,8 @@ Typical install time on a standard desktop computer: 3-5 minutes
 
 ## Usage
 
-The simplest way to use Ubicon is through the provided Jupyter notebook tutorial (tutorial.ipynb). Alternatively, you can run it directly on Google Colab:[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/kota-2000/ATHENA_New/blob/main/ATHENA_IDR_Classifier/notebooks/Colab_Demo.ipynb)
+The simplest way to use Ubicon is through the provided Jupyter notebook tutorial (tutorial.ipynb). Alternatively, you can run it directly on Google Colab:[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Shimizu-team/ATHENA/blob/main/ATHENA_IDR_Classifier/notebooks/Colab_Demo.ipynb)
+
 Expected runtime: ~3-5 minutes including installation
 
 ### Input Files
