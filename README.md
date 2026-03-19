@@ -6,8 +6,9 @@ This repository provides the official implementation for the core structural dis
 
 While the full ATHENA framework is designed to predict multiple properties, its primary function and core component is the accurate prediction of structural disorder—a key feature of many stress-response proteins (e.g., tardigrade effectors). This repository provides the two-tiered classification system for this task:
 
-1. A protein-level classifier for predicting the likelihood of being globally disordered.
-2. A state-of-the-art residue-level classifier for mapping intrinsically disordered regions (IDRs).
+1.  A state-of-the-art residue-level classifier for mapping intrinsically disordered regions (IDRs).
+2.  A protein-level classifier for predicting the likelihood of being globally disordered.
+
 
 ## Overview
 
@@ -19,14 +20,15 @@ To overcome this challenge, we developed the ATHENA framework. The models provid
 
 This repository provides two distinct, state-of-the-art models:
 
+* **Residue-Level IDR Classifier:**
+    * Provides fine-grained prediction, mapping the precise boundaries of intrinsically disordered regions (IDRs) within a protein sequence.
+    * Employs a dual-stream fusion architecture, combining **ESM-C** protein language model embeddings with **Boltz-2** structure prediction features.
+    * Uses **Bilinear Cross-Attention** between the sequence and structure streams, with **Bi-directional GRU (BiGRU)** blocks for local context and an **MLP** classification head.
+
 * **Protein-Level IDP Classifier:**
     * Predicts a protein's overall 'stress-resistance potential' (the **ATHENA score**), which correlates with its likelihood of being a globally disordered protein.
     * Built on embeddings from the **ESM-C** Protein Language Model (PLM).
     * Uses **Low-Rank Adaptation (LoRA)** fine-tuning to specialize the PLM for accurately distinguishing disordered from structured proteins.
-
-* **Residue-Level IDR Classifier:**
-    * Provides fine-grained prediction, mapping the precise boundaries of intrinsically disordered regions (IDRs) within a protein sequence.
-    * Employs a hybrid deep learning architecture, combining a **Bi-directional LSTM (Bi-LSTM)** to capture local sequence context and a **Transformer** encoder to model long-range dependencies.
 
 ## Prerequisites
 The basic requirements for running ATHENA is Python with the following packages:
@@ -59,6 +61,10 @@ Typical install time on a standard desktop computer: 3-5 minutes
 
 ## Usage
 
+The simplest way to use Ubicon is through the provided Jupyter notebook tutorial (tutorial.ipynb). Alternatively, you can run it directly on Google Colab:[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Shimizu-team/ATHENA/blob/main/ATHENA_IDR_Classifier/notebooks/Colab_Demo.ipynb)
+
+Expected runtime: ~3-5 minutes including installation
+
 ### Input Files
 
 The primary input for both classifiers is a standard multi-FASTA file (e.g., `example_sequences.fasta`). The parsers in the scripts are designed to extract sequence IDs from UniProt-style headers (like `>sp|P12345|...`) or simple headers (like `>my_protein_id_1`).
@@ -74,8 +80,61 @@ MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVT
 TLSYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKED
 ...
 ```
+
 ### How to Run:
-**1. Protein-Level IDP Classification**
+
+**1. Residue-Level Classification (Mapping IDRs)**
+
+Expected run time for demo on a standard desktop computer: Anywhere from 1-10 minutes, depending on the number of sequences to be classified.
+
+The IDR classifier requires three inputs with **matching protein IDs** across all of them:
+
+1. **FASTA file** — standard format (`>PROTEIN_ID\nSEQUENCE`)
+2. **ESM-C embeddings** — a `.pt` file containing a dict of `{protein_id: tensor[L, 960]}` (must use ESM-C **300m**)
+3. **Boltz-2 features** — a directory of per-protein subdirectories containing structure prediction outputs
+
+Run inference using the `predict.py` script inside `ATHENA_IDR_Classifier/`:
+
+```
+cd ATHENA_IDR_Classifier
+
+python predict.py \
+    --fasta data/example_sequences.fasta \
+    --embeddings data/embeddings/example_esmc_300m.pt \
+    --boltz-dir data/boltz2_predictions/predictions \
+    --output-dir output/
+```
+
+To predict specific proteins only:
+
+```
+python predict.py \
+    --fasta data/example_sequences.fasta \
+    --embeddings data/embeddings/example_esmc_300m.pt \
+    --boltz-dir data/boltz2_predictions/predictions \
+    --protein-ids DP03748 DP03749 \
+    --output-dir output/
+```
+
+**Command-Line Options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--fasta` | (required) | FASTA file with query sequences |
+| `--embeddings` | (required) | Pre-computed ESM-C embeddings `.pt` file |
+| `--boltz-dir` | (required) | Boltz-2 predictions directory |
+| `--checkpoint` | `weights/best_model.pt` | Model checkpoint path |
+| `--protein-ids` | all | Specific protein IDs to predict |
+| `--output-dir` | `./output` | Output directory |
+| `--batch-size` | 8 | Inference batch size |
+| `--threshold` | auto (0.4302) | Classification threshold |
+| `--format` | both | Output format: json, tsv, or both |
+
+**Preparing inputs for your own proteins:**
+
+To run predictions on new proteins, you need to pre-compute both ESM-C embeddings and Boltz-2 features.
+
+**2. Protein-Level IDP Classification**
 Expected run time for demo on a standard desktop computer: Anywhere from 1-10 minutes, depending on the number of sequences to be scored.
 ```
 python ATHENA_IDP_classification.py --title "IDP_Inference" \
@@ -97,40 +156,38 @@ This script executes ATHENA_IDP_classification.py with specific arguments:
 
 * **--batch_size** 64: Sets the batch size for inference. Adjust based on your GPU memory.
 
-**2. Residue-Level Classification (Mapping IDRs)**
-Expected run time for demo on a standard desktop computer: Anywhere from 1-10 minutes, depending on the number of sequences to be classified.
-
-This workflow is an end-to-end pipeline that performs two steps:
-
-Embedding Generation: It first generates residue-level embeddings for each protein in your FASTA file
-
-IDR Prediction: It then feeds these embeddings into the IDR classification model to predict a disorder label (0 or 1) and probability for each residue.
-
-Use the provided IDR_classification.sh script:
-
-```
-python ATHENA_IDR_classification.py \
-    --fasta_file input/example_sequences.fasta \
-    --idr_model_path ATHENA_IDR_model_params/ATHENA_IDR_Weights.pt \
-    --output_csv IDR_predictions.csv \
-    --esm_model_name "esmc_300m" 
-```
-
-* **--fasta_file** input/example_sequences.fasta: Specifies your input FASTA file.
-
-* **--idr_model_path** ATHENA_IDR_model_params/ATHENA_IDR_Weights.pt: The path to the pre-trained weights for the Bi-LSTM+Transformer model. The script expects this file to contain a model_state_dict.
-
-* **--output_csv** IDR_predictions.csv: The name of the final CSV file where all per-residue predictions will be saved.
-
-* **--esm_model_name** "esmc_300m": The name of the ESM model to use for generating embeddings. If you use an API model like "esmc_300m", you must also provide the --esm_api_token argument with your API key.
-
-* **--save_embeddings_dir** (Optional): If you add this argument (e.g., --save_embeddings_dir "my_embeddings"), the script will save the intermediate residue embeddings to disk, which can be useful for future runs.
-
 ### Output Explanation
 
 The two workflows produce different types of output files.
 
-**1. Protein-Level Classifier Output**
+**1. Residue-Level Classifier Output**
+
+Predictions are saved in both JSON and TSV formats in the specified `--output-dir`:
+
+**JSON** (`predictions.json`):
+```json
+{
+  "DP03748": {
+    "length": 180,
+    "threshold": 0.4302,
+    "fraction_disordered": 0.15,
+    "probabilities": [0.12, 0.87, ...],
+    "predictions": [0, 1, ...]
+  }
+}
+```
+
+**TSV** (`predictions.tsv`):
+
+| Column | Description |
+| :--- | :--- |
+| protein_id | The identifier for the protein (e.g., DP03748). |
+| position | The 1-based index of the amino acid in the sequence. |
+| amino_acid | The single-letter amino acid at that position. |
+| probability | The predicted probability (0.0000 to 1.0000) of being disordered. |
+| prediction | The hard prediction: 1 (Disordered) or 0 (Structured), based on the threshold. |
+
+**2. Protein-Level Classifier Output**
 
 The output depends on the --output_type argument set in inference.sh:
 
@@ -143,16 +200,3 @@ Structured_score_before_softmax_{title}.pt: The raw logit score for the "structu
 --output_type "IDP_probability" (Default): This saves a single PyTorch (.pt) file:
 
 IDP_score_{title}.pt: A dictionary mapping each seq_id to its softmax probability (a float between 0.0 and 1.0) of being in the "IDP" class.
-
-**2. Residue-Level Classifier Output**
-
-This workflow produces a single, comprehensive CSV file specified by the --output_csv argument (e.g., IDR_predictions.csv).
-
-The file contains one row for every amino acid in your input FASTA, with the following columns:
-
-| Column | Description |
-| :--- | :--- |
-| Protein ID | The identifier for the protein (e.g., P0DTC2). |
-| Residue Index | The 0-based index of the amino acid in the sequence. |
-| Predicted Label | The hard prediction: 1 (Disordered) or 0 (Structured). |
-| Disordered Probability | The softmax probability (0.0000 to 1.0000) for the "Disordered" class. |
