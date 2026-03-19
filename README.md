@@ -20,10 +20,14 @@ To overcome this challenge, we developed the ATHENA framework. The models provid
 
 This repository provides two distinct, state-of-the-art models:
 
+![ATHENA-IDR Architecture](ATHENA-IDR.png)
+
 * **Residue-Level IDR Classifier:**
     * Provides fine-grained prediction, mapping the precise boundaries of intrinsically disordered regions (IDRs) within a protein sequence.
     * Employs a dual-stream fusion architecture, combining **ESM-C** protein language model embeddings with **Boltz-2** structure prediction features.
     * Uses **Bilinear Cross-Attention** between the sequence and structure streams, with **Bi-directional GRU (BiGRU)** blocks for local context and an **MLP** classification head.
+
+![ATHENA-IDP Architecture](ATHENA-IDP.png)
 
 * **Protein-Level IDP Classifier:**
     * Predicts a protein's overall 'stress-resistance potential' (the **ATHENA score**), which correlates with its likelihood of being a globally disordered protein.
