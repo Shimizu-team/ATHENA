@@ -14,7 +14,7 @@ While the full ATHENA framework is designed to predict multiple properties, its 
 
 The discovery of novel 'guardian' proteins, such as those that give tardigrades their remarkable resilience to extreme environments, is a significant challenge. Many of these key effectors are intrinsically disordered proteins (IDPs). Unlike structured proteins, IDPs lack a stable 3D fold, and their sequences often evolve rapidly. This makes them difficult to identify using traditional homology-based computational methods, which rely on sequence or structure conservation.
 
-To overcome this challenge, we developed the ATHENA framework. The models provided here are focused on identifying structural disorder by capturing the subtle sequence features indicative of this property. The models are built upon protein language model (PLM) embeddings (ESM-C) and are fine-tuned using Low-Rank Adaptation (LoRA) to specialize in this complex prediction task.
+To overcome this challenge, we developed the ATHENA framework. The models provided here are focused on identifying structural disorder by capturing the subtle sequence features indicative of this property. The models are built upon protein language model (PLM) embeddings (ESM-C); the protein-level IDP classifier is fine-tuned using Low-Rank Adaptation (LoRA) to specialize in this complex prediction task.
 
 ## Key Features
 
@@ -29,7 +29,7 @@ This repository provides two distinct, state-of-the-art models:
 
 * **Protein-Level IDP Classifier:**
     * Predicts a protein's overall 'stress-resistance potential' (the **ATHENA score**), which correlates with its likelihood of being a globally disordered protein.
-    * Built on embeddings from the **ESM-C** Protein Language Model (PLM).
+    * Built on embeddings from the **ESM-C** Protein Language Model (PLM), used through its Hugging Face port ESM++ (`Synthyra/ESMplusplus_small`, ESM-C 300m).
     * Uses **Low-Rank Adaptation (LoRA)** fine-tuning to specialize the PLM for accurately distinguishing disordered from structured proteins.
 
 ![ATHENA-IDP Architecture](ATHENA-IDP.png)
@@ -176,7 +176,9 @@ This script executes ATHENA_IDP_classification.py with specific arguments:
 
 * **--classifier_params_path**: Deprecated and ignored. Earlier versions of this script loaded `classifier_params.pth` from the parameter directory, but that file holds an untrained, default-initialised linear layer that was never part of the forward pass. It is kept in the zip archive only for backward compatibility.
 
-* **--output_type** "before_softmax": This is a key setting. It instructs the script to output the raw, unnormalized logit scores from the model instead of softmax probabilities. This raw score is the "ATHENA Score."
+* **--output_type** "before_softmax": This is a key setting. It instructs the script to output the raw, unnormalized logit scores from the model instead of softmax probabilities. The ATHENA score reported in the paper is this IDP logit after min-max scaling to [0, 1] across the scored proteins; add `--min_max_scaling` to also save the scaled scores (see Output Explanation).
+
+* **--min_max_scaling** (optional, only with `--output_type "before_softmax"`): Additionally saves the IDP logits min-max scaled to [0, 1] across all sequences in the input FASTA, i.e. the ATHENA score as defined in the paper.
 
 * **--batch_size** 64: Sets the batch size for inference. Reduce it if you run out of memory (e.g. on CPU or a small GPU).
 
@@ -217,9 +219,13 @@ The output depends on the --output_type argument given on the command line:
 
 --output_type "before_softmax" (Recommended): This saves two PyTorch (.pt) files in the specified --output_dir (default is output/). These files are Python dictionaries mapping each seq_id to its raw logit score:
 
-IDP_score_before_softmax_{title}.pt: This is the main "ATHENA Score." A higher score indicates a higher likelihood of being a disordered "guardian" protein.
+IDP_score_before_softmax_{title}.pt: The raw (unnormalized) logit score for the "IDP" class. A higher score indicates a higher likelihood of being a globally disordered protein.
 
 Structured_score_before_softmax_{title}.pt: The raw logit score for the "structured" class.
+
+With --min_max_scaling, a third file is saved:
+
+ATHENA_score_{title}.pt: The IDP logit min-max scaled to [0, 1] across all input sequences. This is the "ATHENA score" used in the paper (e.g. the score ≥ 0.8 pre-filter).
 
 --output_type "IDP_probability" (Default): This saves a single PyTorch (.pt) file:
 

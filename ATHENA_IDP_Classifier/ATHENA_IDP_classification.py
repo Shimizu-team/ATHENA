@@ -139,6 +139,15 @@ def fasta2dict(filename):
     print(f"> {len(sequences)} sequences loaded from {filename}")
     return sequences
 
+def min_max_scale(scores: Dict[str, float]) -> Dict[str, float]:
+    """Min-max scale scores to [0, 1] across all sequences in the dict."""
+    values = list(scores.values())
+    lo, hi = min(values), max(values)
+    if hi == lo:
+        return {k: 0.0 for k in scores}
+    return {k: (v - lo) / (hi - lo) for k, v in scores.items()}
+
+
 class InferenceDataset(Dataset):
     def __init__(self, seq_ids, sequences):
         self.seq_ids = seq_ids
@@ -236,6 +245,12 @@ def predict(conf: Config):
         
         print(f"\nIDP scores (before softmax) saved to: {output_idp_path}")
         print(f"Structured scores (before softmax) saved to: {output_structured_path}")
+
+        if conf.min_max_scaling:
+            athena_scores = min_max_scale(idp_scores_before_softmax)
+            output_athena_path = os.path.join(conf.output_dir, f"ATHENA_score_{conf.title}.pt")
+            torch.save(athena_scores, output_athena_path)
+            print(f"Min-max scaled IDP scores (ATHENA score) saved to: {output_athena_path}")
 
         print("\n--- IDP Score (Before Softmax) Results (Top 5) ---")
         for i, (seq_id, score) in enumerate(idp_scores_before_softmax.items()):

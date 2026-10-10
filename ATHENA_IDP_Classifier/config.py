@@ -38,6 +38,7 @@ class Config:
 
         # Run settings
         self.title = args.title
+        self.min_max_scaling = getattr(args, "min_max_scaling", False)
 
 
 class ParseDictAction(argparse.Action):
@@ -140,8 +141,18 @@ def parse_args():
         "--title", type=str, default="test",
         help="Title of the run (used in output file names)"
     )
+    parser.add_argument(
+        "--min_max_scaling", action="store_true",
+        help=(
+            "Additionally save the IDP logits min-max scaled to [0, 1] across all input "
+            f"sequences (ATHENA_score_{{title}}.pt). Only with --output_type {OUTPUT_TYPE_LOGITS}."
+        )
+    )
 
     args = parser.parse_args()
+
+    if args.min_max_scaling and args.output_type != OUTPUT_TYPE_LOGITS:
+        parser.error(f"--min_max_scaling requires --output_type {OUTPUT_TYPE_LOGITS}.")
 
     # Consistency check between adapter_paths and adapter_weights
     if args.adapter_paths and args.adapter_weights:
