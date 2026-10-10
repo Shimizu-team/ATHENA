@@ -1,39 +1,62 @@
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+from typing import Dict, List, Optional
+
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt
-from transformers import (
-    AutoModel,
-    AutoModelForSequenceClassification,
-    AutoConfig)
-from peft import get_peft_model, LoraConfig, TaskType, PeftModel
-from torch.utils.data import Dataset
-from config import *
-import random
-import numpy as np
-from tqdm import tqdm
-from typing import Dict, List
+from peft import PeftModel
 from torch.utils.data import DataLoader, Dataset
-import argparse 
+from tqdm import tqdm
+from transformers import AutoModelForSequenceClassification
+
+from config import (
+    Config,
+    DEFAULT_BASE_MODEL_REVISION,
+    EXPECTED_POOLING_TYPES,
+    parse_args,
+)
+
+
+def load_base_model(base_model_name: str, revision: Optional[str]):
+    """Load the base model and its remote code at a fixed Hub revision."""
+    return AutoModelForSequenceClassification.from_pretrained(
+        base_model_name,
+        revision=revision,
+        trust_remote_code=True
+    )
+
+
+def verify_pooling_types(base_model) -> None:
+    """Make sure the base model pools the way the classifier head was trained."""
+    pooler = getattr(base_model, "pooler", None)
+    pooling_types = getattr(pooler, "pooling_types", None)
+    if pooling_types is None:
+        print("Warning: could not read the pooling types of the base model; "
+              f"expected {list(EXPECTED_POOLING_TYPES)}.")
+        return
+    if tuple(pooling_types) != EXPECTED_POOLING_TYPES:
+        raise ValueError(
+            f"The base model pools with {list(pooling_types)}, but the ATHENA IDP classifier "
+            f"was trained with {list(EXPECTED_POOLING_TYPES)}. Use the pinned base model "
+            f"revision ({DEFAULT_BASE_MODEL_REVISION})."
+        )
 
 
 def setup_xlora_inference_model(
     base_model_name: str,
     adapter_paths: Dict[str, str],
     adapter_weights: List[float],
-    device: str = None
+    device: str = None,
+    base_model_revision: Optional[str] = DEFAULT_BASE_MODEL_REVISION
 ):
 
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
-    # ベースモデルの読み込み
-    base_model = AutoModelForSequenceClassification.from_pretrained(
-        base_model_name,
-        trust_remote_code=True
-    )
+    # Load the base model
+    base_model = load_base_model(base_model_name, base_model_revision)
+    verify_pooling_types(base_model)
 
     tokenizer = base_model.tokenizer
 
@@ -143,7 +166,7 @@ class InferenceDataset(Dataset):
 
 
 @torch.no_grad()
-def predict(conf: argparse.Namespace): # <--- RENAMED
+def predict(conf: Config):
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
@@ -154,7 +177,8 @@ def predict(conf: argparse.Namespace): # <--- RENAMED
         base_model_name=conf.base_model,
         adapter_paths=adapter_paths,
         adapter_weights=conf.adapter_weights,
-        device=device
+        device=device,
+        base_model_revision=conf.base_model_revision
     )
     
     model.classifier = Linear_idp_classification_head(orig_in_features, conf.num_labels)
@@ -177,7 +201,7 @@ def predict(conf: argparse.Namespace): # <--- RENAMED
     seq_ids = list(sequences.keys())
     sequence_list = list(sequences.values())
     
-    # データセットとデータローダーの準備
+    # Prepare the dataset and data loader
     inference_dataset = InferenceDataset(seq_ids, sequence_list)
     inference_dataloader = DataLoader(inference_dataset, batch_size=conf.batch_size, shuffle=False)
 

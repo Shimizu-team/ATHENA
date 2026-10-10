@@ -154,7 +154,7 @@ To run predictions on new proteins, you need to pre-compute both ESM-C embedding
 
 Expected run time for demo on a standard desktop computer: Anywhere from 1-10 minutes, depending on the number of sequences to be scored.
 
-The model parameters are shipped as a zip archive and must be extracted once. The base model (`Synthyra/ESMplusplus_small`) is downloaded from Hugging Face on the first run, so an internet connection is required.
+The model parameters are shipped as a zip archive and must be extracted once. The base model (`Synthyra/ESMplusplus_small`) is downloaded from Hugging Face on the first run, so an internet connection is required. The script pins the base model to the Hugging Face revision the adapter was trained with (`DEFAULT_BASE_MODEL_REVISION` in `config.py`, overridable with `--base_model_revision`), because later revisions pool differently ([CLS] + mean is required) and need newer library versions. Use the `transformers` and `peft` versions listed in Prerequisites.
 
 Starting from the repository root (if you are still inside `ATHENA_IDR_Classifier/`, run `cd ..` first):
 

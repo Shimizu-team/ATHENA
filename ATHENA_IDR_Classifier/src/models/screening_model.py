@@ -5,7 +5,6 @@ Inference-only version. No LoRA or CRF support.
 
 import logging
 
-import torch
 import torch.nn as nn
 
 from src.models.blocks import (
@@ -13,7 +12,6 @@ from src.models.blocks import (
     BilinearCrossAttnOnlyBlock,
     MergeBlock,
 )
-from src.models.components import BilinearCrossAttention
 from src.models.components import PositionalEncoding
 from src.models.screening_fusion import DSBFusion
 
