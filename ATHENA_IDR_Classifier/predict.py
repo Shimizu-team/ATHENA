@@ -4,7 +4,7 @@ Loads a trained model checkpoint and pre-computed features to predict
 per-residue disorder probabilities for protein sequences.
 
 Usage:
-    # Predict all 100 example proteins (using bundled data)
+    # Predict all 50 example proteins (using bundled data)
     python predict.py \
         --fasta data/example_sequences.fasta \
         --embeddings data/embeddings/example_esmc_300m.pt \

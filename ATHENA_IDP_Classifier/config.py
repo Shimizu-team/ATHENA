@@ -85,7 +85,7 @@ def parse_args():
     )
     parser.add_argument(
         "--max_length", type=int, default=10000,
-        help="トークナイザーの最大配列長。デフォルト: 2048"
+        help="トークナイザーの最大配列長。デフォルト: 10000"
     )
     parser.add_argument(
         "--batch_size", type=int, default=32,
