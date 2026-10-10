@@ -164,7 +164,6 @@ unzip -o ATHENA_IDP_model_params/ATHENA_IDP_model_params.zip -d ATHENA_IDP_model
 
 python ATHENA_IDP_classification.py --title "IDP_Inference" \
                     --adapter_paths "IDP_LoRA=ATHENA_IDP_model_params" \
-                    --classifier_params_path "ATHENA_IDP_model_params" \
                     --output_type "before_softmax" \
                     --batch_size 64 \
                     --fasta_path "input/example_sequences.fasta"
@@ -173,9 +172,9 @@ This script executes ATHENA_IDP_classification.py with specific arguments:
 
 * **--fasta_path** "input/example_sequences.fasta": Specifies your input FASTA file.
 
-* **--adapter_paths** "IDP_LoRA=ATHENA_IDP_model_params": Loads the LoRA adapter weights. This tells the script to look in the ATHENA_IDP_model_params/ directory for the adapter files (like adapter_model.safetensors) and load them with the name "IDP_LoRA".
+* **--adapter_paths** "IDP_LoRA=ATHENA_IDP_model_params" (required): Loads the LoRA adapter from the ATHENA_IDP_model_params/ directory (`adapter_config.json`, `adapter_model.safetensors`) under the name "IDP_LoRA". The adapter also contains the trained classification head (a two-layer head, 1920 → 3840 → 2, saved through PEFT `modules_to_save`), so no separate head file is needed.
 
-* **--classifier_params_path** "ATHENA_IDP_model_params": Specifies the directory containing the weights for the final linear classifier head. The script will look for a file named classifier_params.pth inside this directory.
+* **--classifier_params_path**: Deprecated and ignored. Earlier versions of this script loaded `classifier_params.pth` from the parameter directory, but that file holds an untrained, default-initialised linear layer that was never part of the forward pass. It is kept in the zip archive only for backward compatibility.
 
 * **--output_type** "before_softmax": This is a key setting. It instructs the script to output the raw, unnormalized logit scores from the model instead of softmax probabilities. This raw score is the "ATHENA Score."
 

@@ -84,8 +84,12 @@ def parse_args():
     )
     parser.add_argument(
         "--classifier_params_path", type=str,
-        default="ATHENA_IDP_model_params",
-        help="Directory containing the trained classifier weights file (classifier_params.pth)"
+        default=None,
+        help=(
+            "Deprecated and ignored. The trained classifier head is stored inside the "
+            "LoRA adapter (adapter_model.safetensors, PEFT modules_to_save); "
+            "classifier_params.pth is not used."
+        )
     )
     parser.add_argument(
         "--fasta_path", type=str,
@@ -104,7 +108,11 @@ def parse_args():
         nargs='+',
         action=ParseDictAction,
         metavar="NAME=PATH",
-        help="Adapter name and path in 'name=/path/to/adapter' format (multiple allowed)"
+        required=True,
+        help=(
+            "Adapter name and path in 'name=/path/to/adapter' format (multiple allowed). "
+            "Required: the adapter also contains the trained classifier head."
+        )
     )
     parser.add_argument(
         "--adapter_weights",

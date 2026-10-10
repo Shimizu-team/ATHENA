@@ -3,7 +3,6 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from typing import Dict, List, Optional
 
 import torch
-import torch.nn as nn
 from peft import PeftModel
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
@@ -60,17 +59,14 @@ def setup_xlora_inference_model(
 
     tokenizer = base_model.tokenizer
 
-    base_linear = next(
-        m for m in base_model.classifier.modules()
-        if isinstance(m, nn.Linear)
-    )
-    orig_in_features = base_linear.in_features    
+    if not adapter_paths:
+        raise ValueError(
+            "At least one LoRA adapter is required (--adapter_paths). The trained "
+            "classification head is stored inside the adapter (PEFT modules_to_save); "
+            "the base model alone has an untrained head."
+        )
 
-    if adapter_paths is None:
-        print("No LoRA adapters specified. Using base model only.")
-        model = base_model
-        
-    elif len(adapter_paths) == 1:
+    if len(adapter_paths) == 1:
         adapter_name = list(adapter_paths.keys())[0]
         adapter_path = adapter_paths[adapter_name]
         print(f"Loading single LoRA adapter '{adapter_name}'...")
@@ -112,7 +108,7 @@ def setup_xlora_inference_model(
         model.set_adapter("combined_inference")
 
     print("\nModel setup complete.")
-    return model, tokenizer, orig_in_features
+    return model, tokenizer
 
 def fasta2dict(filename):
     sequences = {}
@@ -143,13 +139,6 @@ def fasta2dict(filename):
     print(f"> {len(sequences)} sequences loaded from {filename}")
     return sequences
 
-class Linear_idp_classification_head(nn.Module):
-    def __init__(self, emb_dim, num_labels):
-        super().__init__()
-        self.Linear_idp_classification_head = nn.Linear(emb_dim, num_labels)
-    def forward(self, features, **kwargs):
-        return self.Linear_idp_classification_head(features)
-
 class InferenceDataset(Dataset):
     def __init__(self, seq_ids, sequences):
         self.seq_ids = seq_ids
@@ -172,23 +161,23 @@ def predict(conf: Config):
     print(f"Using device: {device}")
     
     adapter_paths = dict(conf.adapter_paths) if conf.adapter_paths else None
-    
-    model, tokenizer, orig_in_features = setup_xlora_inference_model(
+
+    model, tokenizer = setup_xlora_inference_model(
         base_model_name=conf.base_model,
         adapter_paths=adapter_paths,
         adapter_weights=conf.adapter_weights,
         device=device,
         base_model_revision=conf.base_model_revision
     )
-    
-    model.classifier = Linear_idp_classification_head(orig_in_features, conf.num_labels)
-    cls_path = os.path.join(conf.classifier_params_path, "classifier_params.pth")
-    
-    if not os.path.exists(cls_path):
-        raise FileNotFoundError(f"Classifier weights not found at: {cls_path}")
-        
-    model.classifier.load_state_dict(torch.load(cls_path, map_location='cpu'))
-    print(f"Loaded classifier weights from {cls_path}")
+
+    # The classification head is restored by PeftModel.from_pretrained together
+    # with the LoRA weights (adapter_config.json: modules_to_save = ["classifier",
+    # "score"]). The legacy classifier_params.pth shipped next to the adapter is an
+    # untrained, default-initialised nn.Linear that was never part of the forward
+    # pass; it is intentionally not loaded.
+    if conf.classifier_params_path:
+        print("Note: --classifier_params_path is ignored. The trained classifier head "
+              "is loaded from the LoRA adapter (modules_to_save).")
 
     model.to(device)
     model.eval()
