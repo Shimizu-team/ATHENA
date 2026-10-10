@@ -35,7 +35,14 @@ This repository provides two distinct, state-of-the-art models:
 ![ATHENA-IDP Architecture](ATHENA-IDP.png)
 
 ## Prerequisites
-The basic requirements for running ATHENA is Python with the following packages:
+
+**Git and Git LFS must be installed before cloning.** The IDR model weights and example embeddings are stored with [Git LFS](https://git-lfs.com/); without it, `git clone` downloads only small pointer files and `git lfs` reports `'lfs' is not a git command`.
+
+* [Git](https://git-scm.com/)
+* [Git LFS](https://git-lfs.com/) — macOS: `brew install git-lfs`; Ubuntu/Debian: `sudo apt install git-lfs`; Windows: installer from git-lfs.com; conda: `conda install -c conda-forge git-lfs`. Then run `git lfs install` once.
+* [Conda](https://docs.conda.io/) (Miniconda or Anaconda) to create the environment below
+
+The basic Python requirements are:
 
 * python=3.10
 * torch==2.5.1
@@ -43,14 +50,13 @@ The basic requirements for running ATHENA is Python with the following packages:
 * transformers==4.48.1
 * peft==0.15.2
 * pandas==2.2.3
-* [Git LFS](https://git-lfs.com/) (required to download the IDR model weights and example embeddings)
 
 Details on system requirements and the full dependency list is contained in the following file: environment.yml
 
 ## Installation
 
 **Clone this repository:**
-The IDR model weights and example embeddings are stored with Git LFS, so Git LFS must be installed before cloning:
+Git and Git LFS must already be installed (see Prerequisites):
 ```
 git lfs install
 git clone https://github.com/Shimizu-team/ATHENA.git
