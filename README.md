@@ -14,7 +14,7 @@ While the full ATHENA framework is designed to predict multiple properties, its 
 
 The discovery of novel 'guardian' proteins, such as those that give tardigrades their remarkable resilience to extreme environments, is a significant challenge. Many of these key effectors are intrinsically disordered proteins (IDPs). Unlike structured proteins, IDPs lack a stable 3D fold, and their sequences often evolve rapidly. This makes them difficult to identify using traditional homology-based computational methods, which rely on sequence or structure conservation.
 
-To overcome this challenge, we developed the ATHENA framework. The models provided here are focused on identifying structural disorder by capturing the subtle sequence features indicative of this property. The models are built upon protein language model (PLM) embeddings (ESM-C) and are fine-tuned using Low-Rank Adaptation (LoRA) to specialize in this complex prediction task.
+To overcome this challenge, we developed the ATHENA framework. The models provided here are focused on identifying structural disorder by capturing the subtle sequence features indicative of this property. The models are built upon protein language model (PLM) embeddings (ESM-C); the protein-level IDP classifier is fine-tuned using Low-Rank Adaptation (LoRA) to specialize in this complex prediction task.
 
 ## Key Features
 
@@ -29,43 +29,58 @@ This repository provides two distinct, state-of-the-art models:
 
 * **Protein-Level IDP Classifier:**
     * Predicts a protein's overall 'stress-resistance potential' (the **ATHENA score**), which correlates with its likelihood of being a globally disordered protein.
-    * Built on embeddings from the **ESM-C** Protein Language Model (PLM).
+    * Built on embeddings from the **ESM-C** Protein Language Model (PLM), used through its Hugging Face port ESM++ (`Synthyra/ESMplusplus_small`, ESM-C 300m).
     * Uses **Low-Rank Adaptation (LoRA)** fine-tuning to specialize the PLM for accurately distinguishing disordered from structured proteins.
 
 ![ATHENA-IDP Architecture](ATHENA-IDP.png)
 
 ## Prerequisites
-The basic requirements for running ATHENA is Python with the following packages:
 
-* python=3.10.16
+**Git and Git LFS must be installed before cloning.** The IDR model weights and example embeddings are stored with [Git LFS](https://git-lfs.com/); without it, `git clone` downloads only small pointer files and `git lfs` reports `'lfs' is not a git command`.
+
+* [Git](https://git-scm.com/)
+* [Git LFS](https://git-lfs.com/) — macOS: `brew install git-lfs`; Ubuntu/Debian: `sudo apt install git-lfs`; Windows: installer from git-lfs.com; conda: `conda install -c conda-forge git-lfs`. Then run `git lfs install` once.
+* [Conda](https://docs.conda.io/) (Miniconda or Anaconda) to create the environment below
+
+The basic Python requirements are:
+
+* python=3.10
 * torch==2.5.1
-* scikit-learn==1.6.1
-* scipy==1.15.2
-* pandas==2.2.3
 * numpy==2.0.1
-* esm==3.2.0
 * transformers==4.48.1
+* peft==0.15.2
+* pandas==2.2.3
 
 Details on system requirements and the full dependency list is contained in the following file: environment.yml
 
 ## Installation
 
 **Clone this repository:**
+Git and Git LFS must already be installed (see Prerequisites):
 ```
-git clone https://github.com/shimizu-team/ATHENA.git
+git lfs install
+git clone https://github.com/Shimizu-team/ATHENA.git
 cd ATHENA
+git lfs pull
 ```
+Check that `ATHENA_IDR_Classifier/weights/best_model.pt` is about 92 MB. If it is only ~130 bytes, the LFS files were not downloaded; run `git lfs pull` again.
+
 **Construct environment:**
 You can set up the required environment using the environment.yml file:
 ```
 conda env create -f environment.yml
 conda activate ATHENA
 ```
-Typical install time on a standard desktop computer: 3-5 minutes
+Typical install time on a standard desktop computer: 5-15 minutes, depending on network speed
 
 ## Usage
 
-The simplest way to use Ubicon is through the provided Jupyter notebook tutorial (tutorial.ipynb). Alternatively, you can run it directly on Google Colab:[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Shimizu-team/ATHENA/blob/main/ATHENA_IDR_Classifier/notebooks/Colab_Demo.ipynb)
+Two Jupyter notebooks are provided, one per classifier:
+
+* **Residue-level IDR classifier:** `ATHENA_IDR_Classifier/notebooks/Colab_Demo.ipynb` [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Shimizu-team/ATHENA/blob/main/ATHENA_IDR_Classifier/notebooks/Colab_Demo.ipynb)
+* **Protein-level IDP classifier:** `ATHENA_IDP_Classifier/tutorial.ipynb` [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Shimizu-team/ATHENA/blob/main/ATHENA_IDP_Classifier/tutorial.ipynb)
+
+Alternatively, run the scripts from the command line as described in "How to Run" below.
 
 Expected runtime: ~3-5 minutes including installation
 
@@ -73,15 +88,18 @@ Expected runtime: ~3-5 minutes including installation
 
 The primary input for both classifiers is a standard multi-FASTA file (e.g., `example_sequences.fasta`). The parsers in the scripts are designed to extract sequence IDs from UniProt-style headers (like `>sp|P12345|...`) or simple headers (like `>my_protein_id_1`).
 
-**Example FASTA (`input/example_sequences.fasta`):**
+Example input files are bundled with each classifier:
+
+* `ATHENA_IDR_Classifier/data/example_sequences.fasta` (50 proteins, with matching pre-computed features)
+* `ATHENA_IDP_Classifier/input/example_sequences.fasta`
+
+**Example FASTA:**
 ```fasta
->sp|P0DTC2|SPIKE_SARS2
-MFVFLVLLPLVSSQCVNLTTRTQLPPAYTNSFTRGVYYPDKVFRSSVLHSTQDLFLPFFSNVTWFHAIHV
-SGTNGTKRFDNPVLPFNDGVYFASTEKSNIIRGWIFGTTLDSKTQSLLIVNNATNVVIKVCEFQFCNDPF
+>sp|P12345|PROT1_HUMAN Fictitious protein alpha
+MTEYKLVVVGAGGVGKSALTIQLIQNHFVDEYDPTIEDSYRKQVEVDCQQCMLEILDT
 ...
->my_protein_id_1
-MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVPWPTLVT
-TLSYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKED
+>protein_sample_02
+MVHLTPEEKSAVTALWGKVNVDEVGGEALGRLLVVYPWTQRFFESFGDLSTPDAVMGN
 ...
 ```
 
@@ -97,7 +115,7 @@ The IDR classifier requires three inputs with **matching protein IDs** across al
 2. **ESM-C embeddings** — a `.pt` file containing a dict of `{protein_id: tensor[L, 960]}` (must use ESM-C **300m**)
 3. **Boltz-2 features** — a directory of per-protein subdirectories containing structure prediction outputs
 
-Run inference using the `predict.py` script inside `ATHENA_IDR_Classifier/`:
+Run inference using the `predict.py` script inside `ATHENA_IDR_Classifier/`. Starting from the repository root:
 
 ```
 cd ATHENA_IDR_Classifier
@@ -109,7 +127,7 @@ python predict.py \
     --output-dir output/
 ```
 
-To predict specific proteins only:
+To predict specific proteins only (still inside `ATHENA_IDR_Classifier/`):
 
 ```
 python predict.py \
@@ -139,11 +157,19 @@ python predict.py \
 To run predictions on new proteins, you need to pre-compute both ESM-C embeddings and Boltz-2 features.
 
 **2. Protein-Level IDP Classification**
+
 Expected run time for demo on a standard desktop computer: Anywhere from 1-10 minutes, depending on the number of sequences to be scored.
+
+The model parameters are shipped as a zip archive and must be extracted once. The base model (`Synthyra/ESMplusplus_small`) is downloaded from Hugging Face on the first run, so an internet connection is required. The script pins the base model to the Hugging Face revision the adapter was trained with (`DEFAULT_BASE_MODEL_REVISION` in `config.py`, overridable with `--base_model_revision`), because later revisions pool differently ([CLS] + mean is required) and need newer library versions. Use the `transformers` and `peft` versions listed in Prerequisites.
+
+Starting from the repository root (if you are still inside `ATHENA_IDR_Classifier/`, run `cd ..` first):
+
 ```
+cd ATHENA_IDP_Classifier
+unzip -o ATHENA_IDP_model_params/ATHENA_IDP_model_params.zip -d ATHENA_IDP_model_params
+
 python ATHENA_IDP_classification.py --title "IDP_Inference" \
-                    --adapter_paths "IDP_LoRA=model_params" \
-                    --classifier_params_path "model_params" \
+                    --adapter_paths "IDP_LoRA=ATHENA_IDP_model_params" \
                     --output_type "before_softmax" \
                     --batch_size 64 \
                     --fasta_path "input/example_sequences.fasta"
@@ -152,13 +178,15 @@ This script executes ATHENA_IDP_classification.py with specific arguments:
 
 * **--fasta_path** "input/example_sequences.fasta": Specifies your input FASTA file.
 
-* **--adapter_paths** "IDP_LoRA=model_params": Loads the LoRA adapter weights. This tells the script to look in the model_params/ directory for the adapter files (like adapter_model.safetensors) and load them with the name "IDP_LoRA".
+* **--adapter_paths** "IDP_LoRA=ATHENA_IDP_model_params" (required): Loads the LoRA adapter from the ATHENA_IDP_model_params/ directory (`adapter_config.json`, `adapter_model.safetensors`) under the name "IDP_LoRA". The adapter also contains the trained classification head (a two-layer head, 1920 → 3840 → 2, saved through PEFT `modules_to_save`), so no separate head file is needed.
 
-* **-classifier_params_path** "model_params": Specifies the directory containing the weights for the final linear classifier head. The script will look for a file named classifier_params.pth inside this directory.
+* **--classifier_params_path**: Deprecated and ignored. Earlier versions of this script loaded `classifier_params.pth` from the parameter directory, but that file holds an untrained, default-initialised linear layer that was never part of the forward pass. It is kept in the zip archive only for backward compatibility.
 
-* **--output_type** "before_softmax": This is a key setting. It instructs the script to output the raw, unnormalized logit scores from the model instead of softmax probabilities. This raw score is the "ATHENA Score."
+* **--output_type** "before_softmax": This is a key setting. It instructs the script to output the raw, unnormalized logit scores from the model instead of softmax probabilities. The ATHENA score reported in the paper is this IDP logit after min-max scaling to [0, 1] across the scored proteins; add `--min_max_scaling` to also save the scaled scores (see Output Explanation).
 
-* **--batch_size** 64: Sets the batch size for inference. Adjust based on your GPU memory.
+* **--min_max_scaling** (optional, only with `--output_type "before_softmax"`): Additionally saves the IDP logits min-max scaled to [0, 1] across all sequences in the input FASTA, i.e. the ATHENA score as defined in the paper.
+
+* **--batch_size** 64: Sets the batch size for inference. Reduce it if you run out of memory (e.g. on CPU or a small GPU).
 
 ### Output Explanation
 
@@ -193,13 +221,17 @@ Predictions are saved in both JSON and TSV formats in the specified `--output-di
 
 **2. Protein-Level Classifier Output**
 
-The output depends on the --output_type argument set in inference.sh:
+The output depends on the --output_type argument given on the command line:
 
 --output_type "before_softmax" (Recommended): This saves two PyTorch (.pt) files in the specified --output_dir (default is output/). These files are Python dictionaries mapping each seq_id to its raw logit score:
 
-IDP_score_before_softmax_{title}.pt: This is the main "ATHENA Score." A higher score indicates a higher likelihood of being a disordered "guardian" protein.
+IDP_score_before_softmax_{title}.pt: The raw (unnormalized) logit score for the "IDP" class. A higher score indicates a higher likelihood of being a globally disordered protein.
 
 Structured_score_before_softmax_{title}.pt: The raw logit score for the "structured" class.
+
+With --min_max_scaling, a third file is saved:
+
+ATHENA_score_{title}.pt: The IDP logit min-max scaled to [0, 1] across all input sequences. This is the "ATHENA score" used in the paper (e.g. the score ≥ 0.8 pre-filter).
 
 --output_type "IDP_probability" (Default): This saves a single PyTorch (.pt) file:
 

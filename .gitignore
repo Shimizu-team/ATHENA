@@ -1,1 +1,9 @@
-*.pt
+.DS_Store
+__pycache__/
+*.pyc
+output/
+.ipynb_checkpoints/
+
+# Extracted IDP model parameters (keep only the zip under version control)
+ATHENA_IDP_Classifier/ATHENA_IDP_model_params/*
+!ATHENA_IDP_Classifier/ATHENA_IDP_model_params/*.zip

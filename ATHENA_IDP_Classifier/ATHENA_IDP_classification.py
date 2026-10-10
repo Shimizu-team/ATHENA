@@ -1,53 +1,72 @@
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+from typing import Dict, List, Optional
+
 import torch
-import torch.nn as nn
-import matplotlib.pyplot as plt
-from transformers import (
-    AutoModel,
-    AutoModelForSequenceClassification,
-    AutoConfig)
-from peft import get_peft_model, LoraConfig, TaskType, PeftModel
-from torch.utils.data import Dataset
-from config import *
-import random
-import numpy as np
-from tqdm import tqdm
-from typing import Dict, List
+from peft import PeftModel
 from torch.utils.data import DataLoader, Dataset
-import argparse 
+from tqdm import tqdm
+from transformers import AutoModelForSequenceClassification
+
+from config import (
+    Config,
+    DEFAULT_BASE_MODEL_REVISION,
+    EXPECTED_POOLING_TYPES,
+    parse_args,
+)
+
+
+def load_base_model(base_model_name: str, revision: Optional[str]):
+    """Load the base model and its remote code at a fixed Hub revision."""
+    return AutoModelForSequenceClassification.from_pretrained(
+        base_model_name,
+        revision=revision,
+        trust_remote_code=True
+    )
+
+
+def verify_pooling_types(base_model) -> None:
+    """Make sure the base model pools the way the classifier head was trained."""
+    pooler = getattr(base_model, "pooler", None)
+    pooling_types = getattr(pooler, "pooling_types", None)
+    if pooling_types is None:
+        print("Warning: could not read the pooling types of the base model; "
+              f"expected {list(EXPECTED_POOLING_TYPES)}.")
+        return
+    if tuple(pooling_types) != EXPECTED_POOLING_TYPES:
+        raise ValueError(
+            f"The base model pools with {list(pooling_types)}, but the ATHENA IDP classifier "
+            f"was trained with {list(EXPECTED_POOLING_TYPES)}. Use the pinned base model "
+            f"revision ({DEFAULT_BASE_MODEL_REVISION})."
+        )
 
 
 def setup_xlora_inference_model(
     base_model_name: str,
     adapter_paths: Dict[str, str],
     adapter_weights: List[float],
-    device: str = None
+    device: str = None,
+    base_model_revision: Optional[str] = DEFAULT_BASE_MODEL_REVISION
 ):
 
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
-    # ベースモデルの読み込み
-    base_model = AutoModelForSequenceClassification.from_pretrained(
-        base_model_name,
-        trust_remote_code=True
-    )
+    # Load the base model
+    base_model = load_base_model(base_model_name, base_model_revision)
+    verify_pooling_types(base_model)
 
     tokenizer = base_model.tokenizer
 
-    base_linear = next(
-        m for m in base_model.classifier.modules()
-        if isinstance(m, nn.Linear)
-    )
-    orig_in_features = base_linear.in_features    
+    if not adapter_paths:
+        raise ValueError(
+            "At least one LoRA adapter is required (--adapter_paths). The trained "
+            "classification head is stored inside the adapter (PEFT modules_to_save); "
+            "the base model alone has an untrained head."
+        )
 
-    if adapter_paths is None:
-        print("No LoRA adapters specified. Using base model only.")
-        model = base_model
-        
-    elif len(adapter_paths) == 1:
+    if len(adapter_paths) == 1:
         adapter_name = list(adapter_paths.keys())[0]
         adapter_path = adapter_paths[adapter_name]
         print(f"Loading single LoRA adapter '{adapter_name}'...")
@@ -89,7 +108,7 @@ def setup_xlora_inference_model(
         model.set_adapter("combined_inference")
 
     print("\nModel setup complete.")
-    return model, tokenizer, orig_in_features
+    return model, tokenizer
 
 def fasta2dict(filename):
     sequences = {}
@@ -120,12 +139,14 @@ def fasta2dict(filename):
     print(f"> {len(sequences)} sequences loaded from {filename}")
     return sequences
 
-class Linear_idp_classification_head(nn.Module):
-    def __init__(self, emb_dim, num_labels):
-        super().__init__()
-        self.Linear_idp_classification_head = nn.Linear(emb_dim, num_labels)
-    def forward(self, features, **kwargs):
-        return self.Linear_idp_classification_head(features)
+def min_max_scale(scores: Dict[str, float]) -> Dict[str, float]:
+    """Min-max scale scores to [0, 1] across all sequences in the dict."""
+    values = list(scores.values())
+    lo, hi = min(values), max(values)
+    if hi == lo:
+        return {k: 0.0 for k in scores}
+    return {k: (v - lo) / (hi - lo) for k, v in scores.items()}
+
 
 class InferenceDataset(Dataset):
     def __init__(self, seq_ids, sequences):
@@ -143,28 +164,29 @@ class InferenceDataset(Dataset):
 
 
 @torch.no_grad()
-def predict(conf: argparse.Namespace): # <--- RENAMED
+def predict(conf: Config):
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
     
     adapter_paths = dict(conf.adapter_paths) if conf.adapter_paths else None
-    
-    model, tokenizer, orig_in_features = setup_xlora_inference_model(
+
+    model, tokenizer = setup_xlora_inference_model(
         base_model_name=conf.base_model,
         adapter_paths=adapter_paths,
         adapter_weights=conf.adapter_weights,
-        device=device
+        device=device,
+        base_model_revision=conf.base_model_revision
     )
-    
-    model.classifier = Linear_idp_classification_head(orig_in_features, conf.num_labels)
-    cls_path = os.path.join(conf.classifier_params_path, "classifier_params.pth")
-    
-    if not os.path.exists(cls_path):
-        raise FileNotFoundError(f"Classifier weights not found at: {cls_path}")
-        
-    model.classifier.load_state_dict(torch.load(cls_path, map_location='cpu'))
-    print(f"Loaded classifier weights from {cls_path}")
+
+    # The classification head is restored by PeftModel.from_pretrained together
+    # with the LoRA weights (adapter_config.json: modules_to_save = ["classifier",
+    # "score"]). The legacy classifier_params.pth shipped next to the adapter is an
+    # untrained, default-initialised nn.Linear that was never part of the forward
+    # pass; it is intentionally not loaded.
+    if conf.classifier_params_path:
+        print("Note: --classifier_params_path is ignored. The trained classifier head "
+              "is loaded from the LoRA adapter (modules_to_save).")
 
     model.to(device)
     model.eval()
@@ -177,7 +199,7 @@ def predict(conf: argparse.Namespace): # <--- RENAMED
     seq_ids = list(sequences.keys())
     sequence_list = list(sequences.values())
     
-    # データセットとデータローダーの準備
+    # Prepare the dataset and data loader
     inference_dataset = InferenceDataset(seq_ids, sequence_list)
     inference_dataloader = DataLoader(inference_dataset, batch_size=conf.batch_size, shuffle=False)
 
@@ -223,6 +245,12 @@ def predict(conf: argparse.Namespace): # <--- RENAMED
         
         print(f"\nIDP scores (before softmax) saved to: {output_idp_path}")
         print(f"Structured scores (before softmax) saved to: {output_structured_path}")
+
+        if conf.min_max_scaling:
+            athena_scores = min_max_scale(idp_scores_before_softmax)
+            output_athena_path = os.path.join(conf.output_dir, f"ATHENA_score_{conf.title}.pt")
+            torch.save(athena_scores, output_athena_path)
+            print(f"Min-max scaled IDP scores (ATHENA score) saved to: {output_athena_path}")
 
         print("\n--- IDP Score (Before Softmax) Results (Top 5) ---")
         for i, (seq_id, score) in enumerate(idp_scores_before_softmax.items()):
