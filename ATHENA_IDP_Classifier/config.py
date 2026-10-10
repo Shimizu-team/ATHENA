@@ -94,7 +94,7 @@ def parse_args():
     )
     parser.add_argument(
         "--fasta_path", type=str,
-        default="input/example_sequences.fasta",
+        default="data/example_sequences.fasta",
         help="Path to the input FASTA file"
     )
     parser.add_argument(

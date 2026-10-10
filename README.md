@@ -78,7 +78,7 @@ Typical install time on a standard desktop computer: 5-15 minutes, depending on 
 Two Jupyter notebooks are provided, one per classifier:
 
 * **Residue-level IDR classifier:** `ATHENA_IDR_Classifier/notebooks/Colab_Demo.ipynb` [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Shimizu-team/ATHENA/blob/main/ATHENA_IDR_Classifier/notebooks/Colab_Demo.ipynb)
-* **Protein-level IDP classifier:** `ATHENA_IDP_Classifier/tutorial.ipynb` [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Shimizu-team/ATHENA/blob/main/ATHENA_IDP_Classifier/tutorial.ipynb)
+* **Protein-level IDP classifier:** `ATHENA_IDP_Classifier/notebooks/Colab_Demo.ipynb` [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Shimizu-team/ATHENA/blob/main/ATHENA_IDP_Classifier/notebooks/Colab_Demo.ipynb)
 
 Alternatively, run the scripts from the command line as described in "How to Run" below.
 
@@ -91,7 +91,7 @@ The primary input for both classifiers is a standard multi-FASTA file (e.g., `ex
 Example input files are bundled with each classifier:
 
 * `ATHENA_IDR_Classifier/data/example_sequences.fasta` (50 proteins, with matching pre-computed features)
-* `ATHENA_IDP_Classifier/input/example_sequences.fasta`
+* `ATHENA_IDP_Classifier/data/example_sequences.fasta`
 
 **Example FASTA:**
 ```fasta
@@ -172,11 +172,11 @@ python ATHENA_IDP_classification.py --title "IDP_Inference" \
                     --adapter_paths "IDP_LoRA=ATHENA_IDP_model_params" \
                     --output_type "before_softmax" \
                     --batch_size 64 \
-                    --fasta_path "input/example_sequences.fasta"
+                    --fasta_path "data/example_sequences.fasta"
 ```
 This script executes ATHENA_IDP_classification.py with specific arguments:
 
-* **--fasta_path** "input/example_sequences.fasta": Specifies your input FASTA file.
+* **--fasta_path** "data/example_sequences.fasta": Specifies your input FASTA file.
 
 * **--adapter_paths** "IDP_LoRA=ATHENA_IDP_model_params" (required): Loads the LoRA adapter from the ATHENA_IDP_model_params/ directory (`adapter_config.json`, `adapter_model.safetensors`) under the name "IDP_LoRA". The adapter also contains the trained classification head (a two-layer head, 1920 → 3840 → 2, saved through PEFT `modules_to_save`), so no separate head file is needed.
 
